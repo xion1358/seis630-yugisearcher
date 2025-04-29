@@ -1,0 +1,29 @@
+# Ignore Python virtual environments
+venv/
+.venv/
+env/
+__pycache__/
+
+# Ignore compiled Python files
+*.pyc
+*.pyo
+*~.py[cod]
+
+# Ignore environment variables file
+.env
+
+# Ignore log files
+*.log
+logs/
+
+# Ignore database files (if you're using SQLite)
+*.sqlite3
+*.db
+
+# Ignore IDE-specific files
+.idea/        # PyCharm
+.vscode/      # VS Code
+*.suo         # Visual Studio
+
+# Ignore specific files
+last_known_revision.txt
