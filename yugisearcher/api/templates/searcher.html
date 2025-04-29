@@ -1,0 +1,118 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yugisearcher</title>
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/styles.css' %}">
+</head>
+
+<body>
+    <div class="container">
+        <h1><a href="{% url 'searcher' %}" style="text-decoration: none; color: black;">Yugisearcher</a></h1>
+
+        <form method="GET" action="{% url 'searcher' %}" class="search-form">
+            
+            <div class="form-group">
+                <label for="query">Card Name:</label>
+                <input type="text" id="query" name="query" placeholder="Search..." value="{{ query }}">
+            </div>
+        
+            <div class="form-group">
+                <label for="card_type">Card Type:</label>
+                <select name="card_type" id="card_type">
+                    <option value="">Any</option>
+                    <option value="Monster" {% if card_type == "Monster" %}selected{% endif %}>Monster</option>
+                    <option value="Spell" {% if card_type == "Spell" %}selected{% endif %}>Spell</option>
+                    <option value="Trap" {% if card_type == "Trap" %}selected{% endif %}>Trap</option>    
+                </select>
+            </div>
+        
+            <div class="form-group">
+                <label for="card_level">Level:</label>
+                <input type="number" id="card_level" name="card_level" value="{{ card_level | default:'' }}">
+            </div>
+        
+            <div class="form-group">
+                <label for="card_rank">Rank:</label>
+                <input type="number" id="card_rank" name="card_rank" value="{{ card_rank | default:'' }}">
+            </div>
+        
+            <div class="form-group">
+                <label for="link_rating">Link Rating:</label>
+                <input type="number" id="link_rating" name="link_rating" value="{{ link_rating | default:'' }}">
+            </div>
+        
+            <div class="form-group">
+                <label for="pend_scale">Pendulum Scale:</label>
+                <input type="number" id="pend_scale" name="pend_scale" value="{{ pend_scale | default:'' }}">
+            </div>
+        
+            <div class="button-group">
+                <button type="submit">Search</button>
+                <button type="button" onclick="window.location.href='/'">Clear Filters</button>
+            </div>
+        </form>
+        
+    
+        <form method="POST" action="{% url 'clear_card_data' %}" style="margin-top: 1rem;">
+            {% csrf_token %}
+            <button type="submit" onclick="return confirm('Are you sure you want to clear all card data?')">
+                Clear Card Data
+            </button>
+        </form>
+
+        {% if query %}
+            <p>Searching for: <strong>{{ query }}</strong></p>
+
+            {% if page_obj %}
+                {% for inventory_card in page_obj %}
+                    <div class="card-box">
+                        {% with card_data=inventory_card.card_data %}
+                            {% if card_data %}
+                                {% if card_data.image_link %}
+                                    <img src="{{ card_data.image_link }}" alt="{{ card_data.card_name }}">
+                                {% endif %}
+                                <div class="card-details">
+                                    <h2>{{ card_data.card_name }}</h2>
+                                    <p><strong>Type:</strong> {{ card_data.card_type }}</p>
+                                    <p><strong>Effect:</strong> {{ card_data.card_effect }}</p>
+                                    <p><strong>Pend Effect:</strong> {{ card_data.pend_effect }}</p>
+                                    <p><strong>Level:</strong> {{ card_data.card_level }}</p>
+                                    <p><strong>Rank:</strong> {{ card_data.card_rank }}</p>
+                                    <p><strong>Link Rating:</strong> {{ card_data.link_rating }}</p>
+                                    <p><strong>Pendulum Scale:</strong> {{ card_data.pend_scale }}</p>
+                                    <p><strong>Ban Status:</strong> {{ card_data.ban_status }}</p>
+                                </div>
+                            {% else %}
+                                <p>No card data available for this card.</p>
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+                {% endfor %}
+
+                <div class="pagination">
+                    {% if page_obj.has_previous %}
+                        <a href="?query={{ query }}&page={{ page_obj.previous_page_number }}&card_type={{ card_type }}&card_level={{ card_level }}&card_rank={{ card_rank }}&link_rating={{ link_rating }}&pend_scale={{ pend_scale }}">← Previous</a>
+                    {% endif %}
+                
+                    <span style="margin: 0 10px;">
+                        Page {{ page_obj.number }}
+                    </span>
+                
+                    {% if page_obj.has_next %}
+                        <a href="?query={{ query }}&page={{ page_obj.next_page_number }}&card_type={{ card_type }}&card_level={{ card_level }}&card_rank={{ card_rank }}&link_rating={{ link_rating }}&pend_scale={{ pend_scale }}">Next →</a>
+                    {% endif %}
+                </div>
+            {% else %}
+                <p>No results found.</p>
+            {% endif %}
+        {% endif %}
+    </div>
+</body>
+
+</html>

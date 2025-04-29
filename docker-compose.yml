@@ -1,0 +1,72 @@
+### INTRODUCTION##
+# This file contains the necessary definitions to create the resources needed to run the yugisearcher app without installing dependencies (except docker of course)
+# You can run this by doing "docker-compose up -d --build" to build the images fresh from the code base.
+# Note: The app has been created with default support for embedded sqlite, but it can support postgres as well. 
+#
+# In the commented out section for db we have the database defined along with another web resource to connect to it.
+# To run it, please uncomment the db and web resources that ARE commented out and comment out the web that is currently NOT commented out.
+#
+# Then simply run "docker-compose up -d --build" to build and run the application fresh. Go to http://127.0.0.1:8000/ after the containers are up and running.
+# How will you know it's ready? Check the logs for yugisearcher_web container. It'll mention launching the server with the above link. 
+#
+# NOTE: At first launch it will take some time as it'll load some data from the API. 
+# The embedded sqlite DB will take longer to set up (1-2 mins from my testing but it may be longer or shorter depending on your setup)
+services:
+  # Run this db and web resource together (NOT the bottom/2nd web resource) to run Postgres. 
+  # You can optionally just run the db in a container and have your application run in terminal if you wish (imo, best way to develop as it's easy to see changes fast!)
+  db:
+    image: postgres:17.4
+    container_name: postgres_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: yugisearcher
+      POSTGRES_USER: searcher
+      POSTGRES_PASSWORD: seis630
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  # web:
+  #   build: .
+  #   container_name: yugisearcher_web
+  #   restart: unless-stopped
+  #   command: >
+  #     bash -c "
+  #     dockerize -wait tcp://db:5432 -timeout 30s &&
+  #     python yugisearcher/manage.py makemigrations &&
+  #     python yugisearcher/manage.py migrate &&
+  #     python yugisearcher/manage.py runserver 0.0.0.0:8000"
+  #   volumes:
+  #     - .:/app
+  #   ports:
+  #     - "8000:8000"
+  #   depends_on:
+  #     - db
+  #   environment:
+  #     - DB_CHOICE=postgres
+  #     - DJANGO_SETTINGS_MODULE=yugisearcher.settings
+  #     - DB_HOST=db
+  #     - PYTHONUNBUFFERED=1
+
+  # Run this by itself to run the serve with the embedded sqlite database
+  # web:
+  #   build: .
+  #   container_name: yugisearcher_web
+  #   restart: unless-stopped
+  #   command: >
+  #     bash -c "
+  #     python yugisearcher/manage.py makemigrations &&
+  #     python yugisearcher/manage.py migrate &&
+  #     python yugisearcher/manage.py runserver 0.0.0.0:8000"
+  #   volumes:
+  #     - .:/app
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     - DJANGO_SETTINGS_MODULE=yugisearcher.settings
+  #     - DB_HOST=db
+  #     - PYTHONUNBUFFERED=1
+
+volumes:
+  postgres_data:

@@ -1,0 +1,6 @@
+django
+djangorestframework
+environs
+requests
+psycopg2 # May require libpq-dev to be installed!
+pyinstaller

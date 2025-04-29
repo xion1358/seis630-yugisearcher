@@ -1,0 +1,5 @@
+CARD_TYPE = 'card_type'
+CARD_LEVEL = 'card_level'
+CARD_RANK = 'card_rank'
+CARD_LINK = 'link_rating'
+CARD_PEND = 'pend_scale'

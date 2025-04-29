@@ -21,9 +21,12 @@ logs/
 *.db
 
 # Ignore IDE-specific files
-.idea/        # PyCharm
-.vscode/      # VS Code
-*.suo         # Visual Studio
+.idea/
+.vscode/
+*.suo
 
 # Ignore specific files
 last_known_revision.txt
+
+# Ignore specific project directories
+yugisearcher/build/
