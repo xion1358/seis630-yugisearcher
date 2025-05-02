@@ -55,7 +55,7 @@ class Command(BaseCommand):
             
             self.update_revision(current_revision)
 
-            self.stdout.write(self.style.SUCCESS('Successfully fetched and inserted card data'))
+            self.stdout.write(self.style.SUCCESS('Successfully fetched and inserted card inventory'))
 
         except requests.exceptions.RequestException as e:
             self.stdout.write(self.style.ERROR(f"Error fetching data from API: {e}"))

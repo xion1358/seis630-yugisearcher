@@ -153,9 +153,11 @@ This leads to some rare different names but same card situation. I decided to re
 This leads to a bit of strangeness if someone wants to look at old card definitions, but the API unfortunately doesn't keep this information available (at least not easily retrieved).
 
 ## More Notes and Disclosures
-Note:
+Notes:
 You can connect to this database using the credentials (below is for pgAdmin client, other clients may differ slightly).  
-These are the defaults as defined in the docker-compose.yml file.
+These are the defaults as defined in the docker-compose.yml file.  
+
+See the included User Manual in the documents directory for details regarding how to use the application once it is launched.  
 
 Host: localhost  
 Port: 5432  

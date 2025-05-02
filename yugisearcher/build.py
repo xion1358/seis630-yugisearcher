@@ -37,6 +37,8 @@ def remove_existing_executable(exe_path):
                     subprocess.run(f'rm -f "{exe_path}"', check=True, shell=True)
                 print("Executable removed successfully.")
                 break
+            else:
+                break
         except PermissionError:
             print(f"Permission denied when trying to delete {exe_path}. Attempt {i+1}/{retries}.")
             time.sleep(2)

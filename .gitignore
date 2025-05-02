@@ -30,3 +30,4 @@ last_known_revision.txt
 
 # Ignore specific project directories
 yugisearcher/build/
+yugioh-card-history-main/
