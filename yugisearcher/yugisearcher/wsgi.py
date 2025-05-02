@@ -16,3 +16,4 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'yugisearcher.settings')
 
 application = get_wsgi_application()
 call_command('import_card_inventory')
+call_command('import_artworks')

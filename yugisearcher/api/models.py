@@ -1,7 +1,14 @@
 from django.db import models
-import requests
+class CardArtwork(models.Model):
+    card_id = models.BigIntegerField(primary_key=True, null=False)
+    artwork_path = models.TextField(null=False, blank=False)
 
-# Create your models here.
+    class Meta:
+        db_table = 'card_artwork'
+
+    def __str__(self):
+        return self.artwork_path
+
 class CardData(models.Model):
     # No primary key specified. Django automatically creates an id column for the primary key which is auto generated
     card_id = models.BigIntegerField(null=False)
@@ -23,25 +30,6 @@ class CardData(models.Model):
 
     def __str__(self):
         return str(self.card_name)
-    
-    @staticmethod
-    def get_artwork(card_id):
-        manifest_url = 'https://artworks.ygoresources.com/manifest.json'
-        try:
-            manifest = requests.get(manifest_url).json()
-            card_data = manifest.get("cards", {}).get(str(card_id), None)
-            if card_data:
-                art_id = list(card_data.keys())[0]
-                artwork_data = card_data[art_id]
-                artwork_path = artwork_path = artwork_data.get('bestTCG') or artwork_data.get('bestArt') or ''
-                artwork_url = f'{artwork_path}'
-                
-                return artwork_url
-            else:
-                return None
-        except requests.exceptions.RequestException as e:
-            print(f"Error fetching manifest: {e}")
-            return None
 
     
 class CardInventory(models.Model):

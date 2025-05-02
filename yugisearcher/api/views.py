@@ -1,3 +1,9 @@
+import io
+import json
+import os
+import shutil
+import time
+import zipfile
 import requests
 from django.shortcuts import render
 from django.core.paginator import Paginator
@@ -12,6 +18,7 @@ from django.views.decorators.http import require_POST
 from django.shortcuts import redirect
 from yugisearcher import constants
 from django.http import HttpRequest, HttpResponse
+from django.core.management import call_command
 
 
 # Create your views here.
@@ -118,8 +125,168 @@ def searcher(request) -> HttpResponse:
         constants.CARD_PEND: pend_scale,
     })
 
-
 @require_POST
 def clear_card_data(request: HttpRequest):
     CardData.objects.all().delete()
     return redirect('/')
+
+from django.core.cache import cache
+
+PROGRESS_KEY = 'card_data_retrieval_progress'
+
+def set_progress(progress):
+    cache.set(PROGRESS_KEY, progress, timeout=300)
+
+# This is what well see in the console. Note that the number seen in the console is the total bytes of the message body
+# {"progress":0} (14 bytes)
+# {"progress":10} (16 bytes)
+# {"progress":100} (17 bytes)
+def get_progress(request):
+    progress = cache.get(PROGRESS_KEY, 0)
+    return JsonResponse({'progress': progress})
+
+@require_POST
+def retrieve_card_data(request):
+    set_progress(1)
+    results = {}
+
+    # Download
+    download_successful = download_all_card_data()
+    results['download'] = 'success' if download_successful else 'failed'
+
+    # Import
+    if download_successful:
+        import_successful = import_downloaded_card_data("yugioh-card-history-main/en")
+        results['import'] = 'success' if import_successful else 'failed'
+
+        # Cleanup
+        cleanup_successful = cleanup_download_directory("yugioh-card-history-main")
+        results['cleanup'] = 'success' if cleanup_successful else 'failed'
+
+    else:
+        results['import'] = 'skipped'
+        cleanup_download_directory("yugioh-card-history-main")
+        results['cleanup'] = 'attempted'
+
+    return JsonResponse(results, status=200 if all(v == 'success' for k, v in results.items()) else 500)
+
+def download_all_card_data():
+    url = "https://github.com/db-ygoresources-com/yugioh-card-history/archive/refs/heads/main.zip"
+    output_dir = "yugioh-card-history-main"
+    zip_file = "yugioh-card-history-main.zip"
+
+    try:
+        response = requests.get(url, stream=True, allow_redirects=True)
+        response.raise_for_status()
+
+        total_size = int(response.headers.get('Content-Length', 0))
+        bytes_downloaded = 0
+
+        if os.path.exists(zip_file):
+            os.remove(zip_file)
+        if response.status_code == 200:
+            if os.path.exists(output_dir):
+                shutil.rmtree(output_dir)
+            os.makedirs(output_dir)
+            with open(zip_file, 'wb') as file:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        file.write(chunk)
+                        bytes_downloaded += len(chunk)
+                        # print(f"total size: {total_size}")
+                        if total_size > 0:
+                            progress = int((bytes_downloaded / total_size) * 33)
+                            set_progress(progress)
+            print(f"Repository downloaded to yugioh-card-history-main.zip")
+            with zipfile.ZipFile(zip_file) as zip_ref:
+                zip_ref.extractall(".")
+            os.remove(zip_file)
+            print(f"Repository extracted to {output_dir}/")
+            return True
+        else:
+            print(f"Failed to download repo: {response.status_code}")
+            return False
+    except Exception as e:
+        print(f"Error during download: {e}")
+        return False
+
+def import_downloaded_card_data(directory):
+    json_files = [f for f in os.listdir(directory) if f.endswith('.json')]
+    total_files = len(json_files)
+    imported_count = 0
+
+    for i, file in enumerate(json_files):
+        file_path = os.path.join(directory, file)
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+
+            card_id = data.get('id')
+            card_name = data.get('name', 'No Name')
+            card_type = data.get('type', 'No Type')
+            defense = data.get('def', None)
+            card_effect = data.get('effectText', '')
+            pend_effect = data.get('pendEffect', '')
+            card_level = data.get('level', None)
+            card_rank = data.get('rank', None)
+            link_rating = data.get('linkRating', None)
+            pend_scale = data.get('pendScale', None)
+            ban_status = data.get('banStatus', None)
+            image_link = data.get('imageLink', None)
+
+            card_data, created = CardData.objects.update_or_create(
+                card_id=card_id,
+                defaults={
+                    'card_name': card_name,
+                    'card_type': card_type,
+                    'defense': defense,
+                    'card_effect': card_effect,
+                    'pend_effect': pend_effect,
+                    'card_level': card_level,
+                    'card_rank': card_rank,
+                    'link_rating': link_rating,
+                    'pend_scale': pend_scale,
+                    'ban_status': ban_status,
+                    'image_link': CardArtwork.objects.filter(card_id=card_id).first().artwork_path
+                }
+            )
+
+            CardInventory.objects.update_or_create(
+                card_id=card_id,
+                card_name=card_name,
+                defaults={'card_data': card_data}
+            )
+
+            imported_count += 1
+            progress = int(33 + ((imported_count / total_files) * 33))
+            set_progress(progress)
+
+            if created:
+                print(f"Created new card: {card_name}")
+            else:
+                print(f"Updated existing card: {card_name}")
+
+        except Exception as e:
+            print(f"Error importing {file}: {e}")
+            return False
+    return True
+
+def cleanup_download_directory(directory):
+    try:
+        shutil.rmtree(directory)
+        print(f"Deleted directory: {directory}")
+        set_progress(100)
+        time.sleep(3)
+        return True
+    except OSError as e:
+        print(f"Error deleting directory {directory}: {e}")
+        return False
+    
+def import_card_artwork(request):
+    if request.method == 'POST':
+        try:
+            call_command('import_artworks', force=True)
+            return JsonResponse({'status': 'success', 'message': 'Card artwork import started.'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request.'})

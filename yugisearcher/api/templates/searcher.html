@@ -9,6 +9,126 @@
     <title>Yugisearcher</title>
     <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
     <link rel="stylesheet" type="text/css" href="{% static 'css/styles.css' %}">
+    <script>
+        let progressInterval;
+
+        function enableInputs() {
+            document.getElementById('query').disabled = false;
+            document.getElementById('card_type').disabled = false;
+            document.getElementById('card_level').disabled = false;
+            document.getElementById('card_rank').disabled = false;
+            document.getElementById('link_rating').disabled = false;
+            document.getElementById('pend_scale').disabled = false;
+
+            const buttonsToEnable = document.querySelectorAll('button');
+            buttonsToEnable.forEach(button => {
+                button.disabled = false;
+            });
+        }
+
+        function disableInputs() {
+            document.getElementById('query').disabled = true;
+            document.getElementById('card_type').disabled = true;
+            document.getElementById('card_level').disabled = true;
+            document.getElementById('card_rank').disabled = true;
+            document.getElementById('link_rating').disabled = true;
+            document.getElementById('pend_scale').disabled = true;
+
+            const buttonsToDisable = document.querySelectorAll('button');
+            buttonsToDisable.forEach(button => {
+                button.disabled = true;
+            });
+        }
+
+        function startRetrieveProcess() {
+            disableInputs();
+
+            // Enable showing the progress bar and start polling for the percentage
+            const progressContainer = document.getElementById('progress-container');
+            progressContainer.style.display = 'block';
+            updateProgressBar(0);
+            progressInterval = setInterval(fetchProgress, 1000);
+            retrieveAllCardData();
+        }
+
+        function updateProgressBar(progress) {
+            const progressBar = document.getElementById('progress-bar');
+            const progressBarText = document.getElementById('progress-text');
+            progressBar.style.width = progress + '%';
+            progressBarText.innerText = progress + '%';
+        }
+
+        function fetchProgress() {
+            fetch("{% url 'get_progress' %}")
+            .then(response => response.json())
+            .then(data => {
+                updateProgressBar(data.progress);
+            })
+            .catch(error => {
+                console.error("Error fetching progress:", error);
+                clearInterval(progressInterval);
+                document.getElementById('progress-container').style.display = 'none';
+            });
+        }
+
+        function retrieveAllCardData() {
+            fetch("{% url 'retrieve_card_data' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => {
+                if (!response.ok) {
+                    enableInputs()
+                    throw new Error("Network error");
+                }
+                enableInputs()
+                return response.json();
+            })
+            .then(data => {
+                clearInterval(progressInterval);
+                document.getElementById('progress-container').style.display = 'none';
+                location.reload();
+                enableInputs()
+            })
+            .catch(error => {
+                alert("Failed to retrieve card data.");
+                console.error(error);
+                clearInterval(progressInterval);
+                document.getElementById('progress-container').style.display = 'none';
+                enableInputs()
+            });
+        }
+
+        function startArtImportProcess() {
+            disableInputs();
+            fetch("{% url 'import_card_artwork' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                enableInputs();
+                if (data.status === 'success') {
+                    alert('Artwork import success!');
+                } else {
+                    alert('Failed to import artwork: ' + data.message);
+                }
+            })
+            .catch(error => {
+                enableInputs();
+                alert('An error occurred: ' + error);
+            });
+        }
+        
+        
+    </script>
 </head>
 
 <body>
@@ -65,6 +185,20 @@
                 Clear Card Data
             </button>
         </form>
+
+        <div id="progress-container" style="display: none; margin-top: 1rem; border: 1px solid #ccc; height: 20px; overflow: hidden; position: relative;">
+            <div id="progress-bar" style="background-color: #4CAF50; height: 100%; width: 0%; position: absolute; top: 0; left: 0;"></div>
+            <div id="progress-text" style="position: absolute; width: 100%; text-align: center; line-height: 20px; color: black; z-index: 1;">0%</div>
+        </div>
+        
+    
+        <button type="button" onclick="startRetrieveProcess()" style="margin-top: 0.5rem;">
+            Retrieve All Card Data
+        </button>
+
+        <button type="submit" onclick="startArtImportProcess()" style="margin-top: 0.5rem;">
+            Force Update Artwork
+        </button>
 
         {% if query %}
             <p>Searching for: <strong>{{ query }}</strong></p>

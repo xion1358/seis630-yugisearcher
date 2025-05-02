@@ -74,6 +74,7 @@ def run_pyinstaller():
         "--add-data", f"{static_path}:api/static",
         "--add-data", f"{api_templates_path}:api/templates",
         "--hidden-import=api.management.commands.import_card_inventory",
+        "--hidden-import=api.management.commands.import_artworks",
         manage_py_path
     ]
 

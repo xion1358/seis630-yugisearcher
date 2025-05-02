@@ -1,5 +1,5 @@
 import requests
-from ..models import CardData, CardInventory
+from ..models import CardData, CardArtwork
 from django.db.models import Q
 from yugisearcher import constants
 
@@ -27,7 +27,7 @@ def fetch_card(card_id: int, card_name: str):
     link_rating = check_empty(card_data.get("linkArrows", None))
     pend_scale = check_empty(card_data.get("pendulumScale", None))
     ban_status = check_empty(card_data.get("banlistStatus", None))
-    image_link = CardData.get_artwork(card_id)
+    image_link = CardArtwork.objects.filter(card_id=card_id).first().artwork_path
     
     return CardData(card_id=card_id, card_name=card_name, 
                                     card_type=card_type, defense=defense, 

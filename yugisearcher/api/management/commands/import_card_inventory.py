@@ -30,7 +30,7 @@ class Command(BaseCommand):
             current_revision = response.headers.get('X-Cache-Revision')
 
             if current_revision == last_known_revision and existing_cards.exists():
-                self.stdout.write(self.style.SUCCESS('No new revision found'))
+                self.stdout.write(self.style.SUCCESS('No new revision found for card inventory'))
                 return
             if current_revision != last_known_revision and existing_cards.exists():
                 manifest_response = requests.get(f"{manifest_url}{current_revision}")
